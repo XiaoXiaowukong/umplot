@@ -99,7 +99,7 @@ class PlotUtils():
             fig.savefig(self.options.outputFile, format='png', transparent=True, dpi=self.options.dpi, pad_inches=0)
             plt.close()
 
-    # 寻找最小公约数，还可以优化
+    # 寻找最大值除以一个值得到范围是（10，20）
     def reSize(self, x, y):
         if (x > y):
             bigger = x
