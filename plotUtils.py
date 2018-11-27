@@ -66,6 +66,16 @@ class PlotUtils():
             dest="dpi",
             help='plot dpi'
         )
+        # colorbar 的位置[x0,y0,w,h]
+        # x0代表在横轴的位置，横轴比例0-1
+        # y0代表在纵轴的位置，纵轴比例0-1
+        # w 代表colorbar宽度，横轴比例0-1
+        # h 代表colorbar高度，纵轴比例0-1
+        p.add_option(
+            '--colorbar_position',
+            dest="colorbarPosition",
+            help="set colorbar position"
+        )
         p.set_defaults(
             latOrder="asc",
             dataOrder="asc",
@@ -87,16 +97,17 @@ class PlotUtils():
             (z, y, x) = self.sourceData.shape
             levelValue = self.reSize(x, y)
             print x / levelValue, y / levelValue
-            fig = plt.figure(figsize=(x / levelValue, y / levelValue))
-            ax = fig.add_subplot(1, 1, 1)
+            self.fig = plt.figure(figsize=(x / levelValue, y / levelValue))
+            ax = self.fig.add_subplot(1, 1, 1)
             cs = ax.imshow(self.sourceData[0], cmap="jet")
-            # if (self.options.isOpenColorBar):
-            #     plt.colorbar(cs)
+            if (self.options.isOpenColorBar):
+                cax2 = self.fig.add_axes(self.options.colorbarPosition)
+                cbar = plt.colorbar(cs, cax=cax2, orientation='vertical')
             plt.axis(self.options.axis)  # 去掉刻度
             plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)  # 去掉边框
             plt.margins(0, 0)
-            # fig.savefig(self.options.outputFile, format='png',dpi=20)
-            fig.savefig(self.options.outputFile, format='png', transparent=True, dpi=self.options.dpi, pad_inches=0)
+            self.fig.savefig(self.options.outputFile, format='png', transparent=True, dpi=self.options.dpi,
+                             pad_inches=0)
             plt.close()
 
     # 寻找最大值除以一个值得到范围是（10，20）

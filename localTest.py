@@ -26,24 +26,18 @@ def tif2tif():
 
 def plot(lat, lon, data):
     myPlotUtils = PlotUtils()
-    lat0 = 10
-    lat1 = 60
-    lon0 = 65
+    lat0 = "all"
+    lat1 = "all"
+    lon0 = "all"
     lon1 = "all"
-    # print np.max(lat)
-    # print np.min(lat)
-    # print np.max(lon)
-    # print np.min(lon)
     myPlotUtils.initParams(lat, lon, data, plot_range=[lat0, lat1, lon0, lon1],
                            output_file="./export.png",
-                           cmp='red', is_open_colorbar=False, dpi=40)
+                           cmp='red', is_open_colorbar=True, dpi=80, colorbar_position=[0.9, 0.0, 0.05 / 3, 1])
 
 
 if __name__ == '__main__':
     startTime = time.time()
     (lat, lon, data) = tif2tif()
-    print lat
-    print lon
-    print data
+    print "read: %s" % str(time.time() - startTime)
     plot(lat, lon, data)
     print "time: %s" % str(time.time() - startTime)
