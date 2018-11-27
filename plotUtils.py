@@ -90,28 +90,30 @@ class PlotUtils():
             fig = plt.figure(figsize=(x / levelValue, y / levelValue))
             ax = fig.add_subplot(1, 1, 1)
             cs = ax.imshow(self.sourceData[0], cmap="jet")
-            if (self.options.isOpenColorBar):
-                plt.colorbar(cs)
+            # if (self.options.isOpenColorBar):
+            #     plt.colorbar(cs)
             plt.axis(self.options.axis)  # 去掉刻度
             plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)  # 去掉边框
             plt.margins(0, 0)
+            # fig.savefig(self.options.outputFile, format='png',dpi=20)
             fig.savefig(self.options.outputFile, format='png', transparent=True, dpi=self.options.dpi, pad_inches=0)
             plt.close()
 
     # 寻找最小公约数，还可以优化
     def reSize(self, x, y):
-
         if (x > y):
-            smaller = y
+            bigger = x
         else:
-            smaller = x
-        levelValue = 10.0
-        if (smaller < 10):
+            bigger = y
+        levelValue = 1.0
+        if (bigger <= 10):
+            pass
+        elif (10 < bigger < 20):
             pass
         else:
-            while (smaller <= levelValue):
-                levelValue = levelValue * 10
-        print "levelValue", levelValue
+            while bigger > 20:
+                levelValue = levelValue * 2
+                bigger = bigger / 2.0
         return levelValue
 
     def clipData(self):
@@ -131,22 +133,22 @@ class PlotUtils():
             if (lon1 == "all"):
                 lon1 = maxSourcelon
             print lat0, lat1, lon0, lon1
-            (index_Y1, index_Y0) = self.getYIndex(lat0, lat1, self.lat)
-            (index_X0, index_X1) = self.getXIndex(lon0, lon1, self.lon)
-            print (index_Y1, index_Y0)
-            print (index_X0, index_X1)
-            # print self.lat
-            print "0", self.sourceData.shape
-            self.sourceData = self.sourceData[:, index_Y1:index_Y0 + 1, index_X0:index_X1 + 1]  # 裁剪之后的数据
-            print "1", self.sourceData.shape
 
             if (maxSourcelat >= lat0 >= minSourcelat \
                         and minSourcelat <= lat1 <= maxSourcelat \
                         and maxSourcelon >= lon0 >= minSourcelon \
                         and minSourcelon <= lon1 <= maxSourcelon):
-
+                (index_Y1, index_Y0) = self.getYIndex(lat0, lat1, self.lat)
+                (index_X0, index_X1) = self.getXIndex(lon0, lon1, self.lon)
+                print (index_Y1, index_Y0)
+                print (index_X0, index_X1)
+                # print self.lat
+                print "0", self.sourceData.shape
+                self.sourceData = self.sourceData[:, index_Y1:index_Y0 + 1, index_X0:index_X1 + 1]  # 裁剪之后的数据
+                print "1", self.sourceData.shape
                 print "lat or lon range is ok"
             else:
+                print self.sourceData.shape
                 print "lat or lon range is error"
         except Exception, e:
             self.stop()
@@ -156,7 +158,7 @@ class PlotUtils():
     def getYIndex(self, currentYValue0, currentYValue1, allYValue):
         index_Y0 = 0
         index_Y1 = 0
-        print currentYValue0, currentYValue1
+        print "---", currentYValue0, currentYValue1
         for allValueYIndex in allYValue:
             if (currentYValue0 >= allValueYIndex):
                 pass

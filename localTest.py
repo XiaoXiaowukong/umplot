@@ -26,16 +26,16 @@ def tif2tif():
 
 def plot(lat, lon, data):
     myPlotUtils = PlotUtils()
-    lat0 = 49.7
-    lat1 = 50
-    lon0 = 70
+    lat0 = 10
+    lat1 = 60
+    lon0 = 65
     lon1 = "all"
     # print np.max(lat)
     # print np.min(lat)
     # print np.max(lon)
     # print np.min(lon)
     myPlotUtils.initParams(lat, lon, data, plot_range=[lat0, lat1, lon0, lon1],
-                           output_file="./export.jpeg",
+                           output_file="./export.png",
                            cmp='red', is_open_colorbar=False, dpi=40)
 
 
