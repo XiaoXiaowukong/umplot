@@ -30,9 +30,19 @@ def plot(lat, lon, data):
     lat1 = "all"
     lon0 = "all"
     lon1 = "all"
-    myPlotUtils.initParams(lat, lon, data, plot_range=[lat0, lat1, lon0, lon1],
-                           output_file="./export.png",
-                           cmp='red', is_open_colorbar=True, dpi=80, colorbar_position=[0.9, 0.0, 0.05 / 3, 1])
+    lat = np.asarray(lat)
+    # myPlotUtils.initParams(lat, lon, data, plot_range="all,all,all,all",
+    #                        map_range="all,all,all,all", axis_range="0.05,0.05,0.9",
+    #                        output_file="./export_contourf.png",
+    #                        shape_file="/Users/lhtd_01/Downloads/gn_pyserver_py/um_pyserver_fy/statics/map/wgs_84_gbk/qixian_gbk",
+    #                        area_id="152921000000", axis="off", is_clip="False",
+    #                        cmp='red', dpi=80, is_open_colorbar="False", colorbar_position="0.9,0.1,0.03,0.5")
+    myPlotUtils.initParams(lat, lon, data,
+                           output_file="./export_contourf.png",
+                           shape_file="/Users/lhtd_01/Downloads/gn_pyserver_py/um_pyserver_fy/statics/map/wgs_84_gbk/qixian_gbk",
+                           area_id="152921000000", axis="on", is_clip="False",
+                           cmp='red', dpi=80, colorbar_position="0.9,0.1,0.01,0.5", plot_range="20,30,100,110",
+                           map_range="10,40,90,120", axis_range="0.05,0.05,0.9")
 
 
 if __name__ == '__main__':
