@@ -8,6 +8,7 @@ import matplotlib
 
 axis_list = ("on", "off")
 is_clip_list = ("True", "False")
+plot_list = ("contourf", "pcolormesh", "pcolor")
 
 myTitlefont = matplotlib.font_manager.FontProperties(
     fname="/Users/lhtd_01/Downloads/gn_pyserver_py/um_pyserver_fy/statics/msyh.ttf", style="oblique")
@@ -30,7 +31,17 @@ class PlotUtils():
             arguments.append("--%s" % kwarg_key)
             arguments.append(kwgs[kwarg_key])
         (self.options, self.args) = self.parser.parse_args(args=arguments)
+        try:
+            if (self.options.dpi == None):
+                self.options.dpi = 80
+            else:
+                self.options.dpi = int(self.options.dpi)
+            self.options.picWeight = int(self.options.picWeight)
+        except Exception, e:
+            self.options.dpi = 80
+            self.options.picWeight = 1080
         self.initRanges()
+
         print self.options
         self.process()
 
@@ -100,11 +111,24 @@ class PlotUtils():
             help='input areaId'
         )
         p.add_option(
+            '-w',
+            '--pic_weight',
+            dest="picWeight",
+            help='export pic weight size'
+        )
+        p.add_option(
             '--is_clip',
             dest="isClipData",
             type="choice",
             choices=is_clip_list,
             help='is clip source data',
+        )
+        p.add_option(
+            '--plot_type',
+            dest="plotType",
+            type="choice",
+            choices=plot_list,
+            help='matplotlib plot type',
         )
         # colorbar 的位置[x0,y0,w,h]
         # x0代表在横轴的位置，横轴比例0-1
@@ -117,16 +141,18 @@ class PlotUtils():
             help="set colorbar position"
         )
         p.set_defaults(
-            latOrder="asc",
-            dataOrder="asc",
+            plotType="contourf",
             nodata=None,
             plotRange=None,
             mapRange=None,
             axis_range=None,
             axisRange=None,
+            shape_file=None,
+            areaId=None,
             cmp="jet",
             axis="off",
             dpi=80,  # 标准分辨率
+            picWeight=1080,
         )
         self.parser = p
 
@@ -206,7 +232,6 @@ class PlotUtils():
         # ---------------------------------------------
         if (self.options.colorbarPosition == None):
             pass
-            # self.options.colorbarPosition = [0.0, 0.0, 0.02, 0.5]
         else:
             (x0, y0, w, h) = self.options.colorbarPosition.split(",")
             self.options.colorbarPosition = [float(x0), float(y0), float(w), float(h)]
@@ -278,7 +303,7 @@ class PlotUtils():
         m = Basemap(projection='merc', resolution='i', llcrnrlon=mapInfo[2], llcrnrlat=mapInfo[0],
                     urcrnrlon=mapInfo[3], urcrnrlat=mapInfo[1], lat_1=mapInfo[0], lat_2=mapInfo[1],
                     lon_0=(mapInfo[2] + mapInfo[3]) / 2.0, area_thresh=1000)
-        fig_width = 1080
+        fig_width = self.options.picWeight
         fig_width = fig_width / float(self.options.dpi)
         fig_height = fig_width * m.aspect
         figsize = (fig_width, fig_height)
@@ -301,30 +326,35 @@ class PlotUtils():
         self.m = m
 
     def drawBaseData(self):
-
-        if (os.path.exists(self.options.shapeFile + ".shp")):
-            self.m.readshapefile(self.options.shapeFile, 'states')
+        if (self.options.shapeFile != None):
+            if (os.path.exists(self.options.shapeFile + ".shp")):
+                self.m.readshapefile(self.options.shapeFile, 'states')
+            else:
+                print "%s is not exist" % self.options.shapeFile
+                self.stop()
         else:
-            print "%s is not exist" % self.options.shapeFile
-            self.stop()
+            print "no shapefile"
         if (not self.stopped):
 
             X, Y = np.meshgrid(self.lon, self.lat)
             x, y = self.m(X, Y)
-            cs = self.m.contourf(x, y, self.sourceData[0], cmap="jet")
-            # cs = self.m.pcolormesh(x, y, self.sourceData[0], cmap="jet")
-            # cs = self.m.pcolor(x, y, self.sourceData[0], cmap="jet")
+            if (self.options.plotType == "contourf"):
+                cs = self.m.contourf(x, y, self.sourceData[0], cmap=self.options.cmp)
+            elif (self.options.plotType == "pcolormesh"):
+                cs = self.m.pcolormesh(x, y, self.sourceData[0], cmap="jet")
+            elif (self.options.plotType == "pcolor"):
+                cs = self.m.pcolor(x, y, self.sourceData[0], cmap="jet")
             if (self.options.colorbarPosition != None):
                 cax2 = self.fig.add_axes(self.options.colorbarPosition)
                 cbar = plt.colorbar(cs, cax=cax2, orientation='vertical')
-            plt.axis(self.options.axis)  # 去掉刻度
+            # plt.axis(self.options.axis)  #整个画布去掉刻度去掉刻度
+            self.ax.axis(self.options.axis)  # 去掉ax画出的部分的刻度
             # plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)  # 去掉边框
             # plt.margins(0, 0)
-            self.options.areaId = self.options.areaId.split(",")
-            if (self.options.isClipData == "True"):  # 是否裁剪数据
-                maskout.shp2clip2(cs, self.ax, self.m, self.options.shapeFile, self.options.areaId)
-            # self.ax.set_title(unicode("乌海市渤海湾区", "utf-8"), loc="center", fontsize=12,
-            #                   fontproperties=myTitlefont)
+            if (self.options.isClipData == "True" and self.options.shapeFile != None):  # 是否裁剪数据
+                if (self.options.areaId != None):
+                    self.options.areaId = self.options.areaId.split(",")
+                    maskout.shp2clip2(cs, self.ax, self.m, self.options.shapeFile, self.options.areaId)
 
             self.fig.savefig(self.options.outputFile, format='png', transparent=False, dpi=self.options.dpi,
                              pad_inches=0)
