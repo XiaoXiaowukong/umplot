@@ -13,19 +13,24 @@ plot_list = ("contourf", "pcolormesh", "pcolor")
 myTitlefont = matplotlib.font_manager.FontProperties(
     fname="/Users/lhtd_01/Downloads/gn_pyserver_py/um_pyserver_fy/statics/msyh.ttf", style="oblique")
 
+import time
+from osgeo import gdal
+from umOpener.geotiffreader import createXY
+from umOpener.openUtils import OpenUtils
+
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+
 
 class PlotUtils():
     def __init__(self):
         print "__init__"
 
     # 初始化
-    def initParams(self, lat, lon, data, **kwgs):
+    def initParams(self, inputfile, **kwgs):
         print kwgs
         self.stopped = False
         self.optparse_init()
-        self.lat = lat
-        self.lon = lon
-        self.sourceData = data
+        self.inputfile = inputfile
         arguments = []
         for kwarg_key in kwgs.keys():
             arguments.append("--%s" % kwarg_key)
@@ -40,8 +45,19 @@ class PlotUtils():
         except Exception, e:
             self.options.dpi = 80
             self.options.picWeight = 1080
+        try:
+            self.options.alpha = float(self.options.alpha)
+        except Exception, e:
+            self.options.alpha = 1.0
+        colors = self.options.cmp.split(",")
+        print "colors", colors
+        if (colors.__len__() == 1):
+            pass
+        elif (colors.__len__() > 1):
+            # cmp = ListedColormap(colors)
+            cmp = LinearSegmentedColormap.from_list('custom_colcor', colors, N=256)
+            self.options.cmp = cmp
         self.initRanges()
-
         print self.options
         self.process()
 
@@ -140,6 +156,12 @@ class PlotUtils():
             dest="colorbarPosition",
             help="set colorbar position"
         )
+        p.add_option(
+            '--alpha',
+            dest="alpha",
+            help="set axis alpha"
+        )
+
         p.set_defaults(
             plotType="contourf",
             nodata=None,
@@ -153,35 +175,42 @@ class PlotUtils():
             axis="off",
             dpi=80,  # 标准分辨率
             picWeight=1080,
+            alpha=1.0
         )
         self.parser = p
 
+    def openFile(self):
+        myOpenUtils = OpenUtils()
+        myOpenUtils.initParams(
+            self.inputfile,
+            file_type="GeoTiff",
+            export_type="GeoTiff",
+            data_type='float32',
+            lat_order="asc",
+            is_rewirte_data=False,
+            proj="mercator")
+        self.lat = myOpenUtils.lats
+        self.lon = myOpenUtils.lons
+        self.sourceData = myOpenUtils.data
+        if (len(self.sourceData.shape) == 3):
+            self.data = self.sourceData[0]
+        else:
+            self.data = self.sourceData
+
     def process(self):
+        self.openFile()
         self.make_base_data()
+        starttime = time.time()
         self.addBaseMap(self.options.mapRange)
-        self.drawBaseData()
+        print "addBaseMap time", time.time() - starttime
+        starttime = time.time()
+        # self.drawBaseData()
+        self.drawgdalClipData()
+        print "drawBaseData time", time.time() - starttime
         # self.simplePlot()
 
     def make_base_data(self):
         self.clipData()
-
-    # def simplePlot(self):
-    #     if (not self.stopped):
-    #         (z, y, x) = self.sourceData.shape
-    #         levelValue = self.reSize(x, y)
-    #         print x / levelValue, y / levelValue
-    #         self.fig = plt.figure(figsize=(x / levelValue, y / levelValue))
-    #         ax = self.fig.add_subplot(1, 1, 1)
-    #         cs = ax.imshow(self.sourceData[0], cmap="jet")
-    #         if (self.options.isOpenColorBar):
-    #             cax2 = self.fig.add_axes(self.options.colorbarPosition)
-    #             cbar = plt.colorbar(cs, cax=cax2, orientation='vertical')
-    #         plt.axis(self.options.axis)  # 去掉刻度
-    #         plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)  # 去掉边框
-    #         plt.margins(0, 0)
-    #         self.fig.savefig(self.options.outputFile, format='png', transparent=True, dpi=self.options.dpi,
-    #                          pad_inches=0)
-    #         plt.close()
 
     # 寻找最大值除以一个值得到范围是（10，20）
     def reSize(self, x, y):
@@ -237,32 +266,33 @@ class PlotUtils():
             self.options.colorbarPosition = [float(x0), float(y0), float(w), float(h)]
 
     def clipData(self):
-        # try:
-        maxSourcelat = np.max(self.lat)
-        minSourcelat = np.min(self.lat)
-        maxSourcelon = np.max(self.lon)
-        minSourcelon = np.min(self.lon)
+        try:
+            maxSourcelat = np.max(self.lat)
+            minSourcelat = np.min(self.lat)
+            maxSourcelon = np.max(self.lon)
+            minSourcelon = np.min(self.lon)
 
-        print "latlon", self.lat0, self.lat1, self.lon0, self.lon1
-        if (maxSourcelat >= self.lat0 >= minSourcelat \
-                    and minSourcelat <= self.lat1 <= maxSourcelat \
-                    and maxSourcelon >= self.lon0 >= minSourcelon \
-                    and minSourcelon <= self.lon1 <= maxSourcelon):
-            (index_Y1, index_Y0) = self.getYIndex(self.lat0, self.lat1, self.lat)
-            (index_X0, index_X1) = self.getXIndex(self.lon0, self.lon1, self.lon)
-            print (index_Y1, index_Y0)
-            print (index_X0, index_X1)
-            print "0", self.sourceData.shape
-            self.sourceData = self.sourceData[:, index_Y1:index_Y0, index_X0:index_X1]  # 裁剪之后的数据
-            print "1", self.sourceData.shape
-            print "lat or lon range is ok"
-        else:
-            print self.sourceData.shape
-            print "lat or lon range is error"
-            # except Exception, e:
-            #     print e.message
-            #     print "make base data error"
-            #     self.stop()
+            print "latlon", self.lat0, self.lat1, self.lon0, self.lon1
+            if (maxSourcelat >= self.lat0 >= minSourcelat \
+                        and minSourcelat <= self.lat1 <= maxSourcelat \
+                        and maxSourcelon >= self.lon0 >= minSourcelon \
+                        and minSourcelon <= self.lon1 <= maxSourcelon):
+                (index_Y1, index_Y0) = self.getYIndex(self.lat0, self.lat1, self.lat)
+                (index_X0, index_X1) = self.getXIndex(self.lon0, self.lon1, self.lon)
+                print (index_Y1, index_Y0)
+                print (index_X0, index_X1)
+                print "0", self.sourceData.shape
+                self.sourceData = self.sourceData[:, index_Y1:index_Y0, index_X0:index_X1]  # 裁剪之后的数据
+                self.data = self.sourceData[0]  # 裁剪之后的数据
+                print "1", self.sourceData.shape
+                print "lat or lon range is ok"
+            else:
+                print self.sourceData.shape
+                print "lat or lon range is error"
+        except Exception, e:
+            print e.message
+            print "make base data error"
+            self.stop()
 
     # ===================================================================================================
 
@@ -319,8 +349,8 @@ class PlotUtils():
         #
         # meridians = np.arange(0., 360., 1.)  # 创建经线数组
         # m.drawmeridians(meridians, labels=[0, 0, 0, 1], fontsize=10, linewidth=0)  # 绘制经线
-        m.drawcoastlines(linewidth=0.5)
-        m.drawstates(linewidth=0.25)
+        # m.drawcoastlines(linewidth=0.5)
+        # m.drawstates(linewidth=0.25)
         self.fig = fig
         self.ax = ax
         self.m = m
@@ -335,15 +365,15 @@ class PlotUtils():
         else:
             print "no shapefile"
         if (not self.stopped):
-
+            self.data = self.sourceData[0]
             X, Y = np.meshgrid(self.lon, self.lat)
             x, y = self.m(X, Y)
             if (self.options.plotType == "contourf"):
-                cs = self.m.contourf(x, y, self.sourceData[0], cmap=self.options.cmp)
+                cs = self.m.contourf(x, y, self.data, cmap=self.options.cmp, alpha=self.options.alpha)
             elif (self.options.plotType == "pcolormesh"):
-                cs = self.m.pcolormesh(x, y, self.sourceData[0], cmap="jet")
+                cs = self.m.pcolormesh(x, y, self.data, cmap=self.options.cmp, alpha=self.options.alpha)
             elif (self.options.plotType == "pcolor"):
-                cs = self.m.pcolor(x, y, self.sourceData[0], cmap="jet")
+                cs = self.m.pcolor(x, y, self.data, cmap=self.options.cmp, alpha=self.options.alpha)
             if (self.options.colorbarPosition != None):
                 cax2 = self.fig.add_axes(self.options.colorbarPosition)
                 cbar = plt.colorbar(cs, cax=cax2, orientation='vertical')
@@ -359,6 +389,46 @@ class PlotUtils():
             self.fig.savefig(self.options.outputFile, format='png', transparent=False, dpi=self.options.dpi,
                              pad_inches=0)
             plt.close()
+
+    def drawgdalClipData(self):
+        if (self.options.shapeFile != None):
+            if (self.options.areaId != "None"):
+                ds = gdal.Warp("", self.inputfile, format='MEM', cutlineDSName=self.options.shapeFile,
+                               cutlineSQL='SELECT * FROM qixian',
+                               cutlineWhere="qxdm LIKE '%s%s' " % (self.options.areaId, "%"),
+                               dstNodata=np.nan)
+                if (ds != None):
+                    cols = ds.RasterXSize  # 获取文件的列数
+                    rows = ds.RasterYSize  # 获取文件的行数
+                    currentBand = ds.GetRasterBand(1)
+                    current_data = currentBand.ReadAsArray(0, 0, cols, rows)
+                    self.data = current_data
+                    current_geotransf = ds.GetGeoTransform()  # 获取放射矩阵
+                    (current_lat, current_lon) = createXY(current_geotransf, cols, rows)
+                    self.lon = current_lon
+                    self.lat = current_lat
+
+                else:
+                    pass
+            X, Y = np.meshgrid(self.lon, self.lat)
+            x, y = self.m(X, Y)
+            norm = matplotlib.colors.Normalize(vmin=70000., vmax=110000)
+            if (self.options.plotType == "contourf"):
+                cs = self.m.contourf(x, y, self.data, cmap=self.options.cmp, norm=norm,
+                                     alpha=self.options.alpha)
+            elif (self.options.plotType == "pcolormesh"):
+                cs = self.m.pcolormesh(x, y, self.data, cmap=self.options.cmp, norm=norm,
+                                       alpha=self.options.alpha)
+            elif (self.options.plotType == "pcolor"):
+                cs = self.m.pcolor(x, y, self.data, cmap=self.options.cmp, alpha=self.options.alpha)
+            if (self.options.colorbarPosition != None):
+                cax2 = self.fig.add_axes(self.options.colorbarPosition)
+                cbar = plt.colorbar(cs, cax=cax2, orientation='vertical')
+            self.ax.axis(self.options.axis)  # 去掉ax画出的部分的刻度
+            self.fig.savefig(self.options.outputFile, format='png', transparent=False, dpi=self.options.dpi,
+                             pad_inches=0)
+
+        plt.close()
 
     def stop(self):
         self.stopped = True
