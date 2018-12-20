@@ -20,6 +20,9 @@ from umOpener.openUtils import OpenUtils
 
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
+sourcePath = "%s/source" % os.getcwd()
+print sourcePath
+
 
 class PlotUtils():
     def __init__(self):
@@ -50,6 +53,7 @@ class PlotUtils():
         except Exception, e:
             self.options.alpha = 1.0
         colors = self.options.cmp.split(",")
+        self.normalize = self.options.normalize.split(",")
         print "colors", colors
         if (colors.__len__() == 1):
             pass
@@ -58,6 +62,7 @@ class PlotUtils():
             cmp = LinearSegmentedColormap.from_list('custom_colcor', colors, N=256)
             self.options.cmp = cmp
         self.initRanges()
+        self.options.outputFiles = self.options.outputFiles.split(",")
         print self.options
         self.process()
 
@@ -83,8 +88,8 @@ class PlotUtils():
         )
         p.add_option(
             '-o',
-            '--output_file',
-            dest='outputFile',
+            '--output_files',
+            dest='outputFiles',
             help='export png/jepg etc. file',
         )
         p.add_option(
@@ -161,6 +166,12 @@ class PlotUtils():
             dest="alpha",
             help="set axis alpha"
         )
+        p.add_option(
+            '--n',
+            '--normalize',
+            dest="normalize",
+            help="value smin,max"
+        )
 
         p.set_defaults(
             plotType="contourf",
@@ -199,7 +210,7 @@ class PlotUtils():
 
     def process(self):
         self.openFile()
-        self.make_base_data()
+        # self.make_base_data()
         starttime = time.time()
         self.addBaseMap(self.options.mapRange)
         print "addBaseMap time", time.time() - starttime
@@ -287,7 +298,7 @@ class PlotUtils():
                 print "1", self.sourceData.shape
                 print "lat or lon range is ok"
             else:
-                print self.sourceData.shape
+                print "2", self.sourceData.shape
                 print "lat or lon range is error"
         except Exception, e:
             print e.message
@@ -338,19 +349,19 @@ class PlotUtils():
         fig_height = fig_width * m.aspect
         figsize = (fig_width, fig_height)
         fig.set_size_inches(figsize)
-        rec = [self.options.axisRange[0], self.options.axisRange[1], self.options.axisRange[2],
-               self.options.axisRange[2] * fig_width * m.aspect / float(fig_height)]
-        ax = fig.add_axes(rec)
+        self.rec = [self.options.axisRange[0], self.options.axisRange[1], self.options.axisRange[2],
+                    self.options.axisRange[2] * fig_width * m.aspect / float(fig_height)]
+        ax = fig.add_axes(self.rec)
         # m.drawcoastlines()  # 画海岸线
         # m.drawcountries()  # 画国界线
         # m.drawmapboundary()  # 画中国内部区域，即省界线
-        # parallels = np.arange(-90., 90, 1.)  # 创建纬线数组
-        # m.drawparallels(parallels, labels=[1, 0, 0, 0], fontsize=10, linewidth=0)  # 绘制纬线
-        #
-        # meridians = np.arange(0., 360., 1.)  # 创建经线数组
-        # m.drawmeridians(meridians, labels=[0, 0, 0, 1], fontsize=10, linewidth=0)  # 绘制经线
-        # m.drawcoastlines(linewidth=0.5)
-        # m.drawstates(linewidth=0.25)
+        parallels = np.arange(-90., 90, 10.)  # 创建纬线数组
+        m.drawparallels(parallels, labels=[1, 0, 0, 0], fontsize=10, linewidth=0.1)  # 绘制纬线
+
+        meridians = np.arange(0., 360., 10.)  # 创建经线数组
+        m.drawmeridians(meridians, labels=[0, 0, 0, 1], fontsize=10, linewidth=0.1)  # 绘制经线
+        m.drawcoastlines(linewidth=0.5)
+        m.drawstates(linewidth=0.25)
         self.fig = fig
         self.ax = ax
         self.m = m
@@ -386,7 +397,7 @@ class PlotUtils():
                     self.options.areaId = self.options.areaId.split(",")
                     maskout.shp2clip2(cs, self.ax, self.m, self.options.shapeFile, self.options.areaId)
 
-            self.fig.savefig(self.options.outputFile, format='png', transparent=False, dpi=self.options.dpi,
+            self.fig.savefig(self.options.outputFiles, format='png', transparent=False, dpi=self.options.dpi,
                              pad_inches=0)
             plt.close()
 
@@ -400,34 +411,48 @@ class PlotUtils():
                 if (ds != None):
                     cols = ds.RasterXSize  # 获取文件的列数
                     rows = ds.RasterYSize  # 获取文件的行数
-                    currentBand = ds.GetRasterBand(1)
-                    current_data = currentBand.ReadAsArray(0, 0, cols, rows)
-                    self.data = current_data
+                    bands = ds.RasterCount
+
                     current_geotransf = ds.GetGeoTransform()  # 获取放射矩阵
                     (current_lat, current_lon) = createXY(current_geotransf, cols, rows)
                     self.lon = current_lon
                     self.lat = current_lat
-
+                    X, Y = np.meshgrid(self.lon, self.lat)
+                    self.x, self.y = self.m(X, Y)
+                    x, y = self.fig.transFigure.transform((0.9, 0.9))
+                    zhinbenzhenPath = "%s/zhibeizhen.png" % sourcePath
+                    self.fig.figimage(plt.imread(zhinbenzhenPath), xo=x, yo=y, zorder=1000)
+                    scale = self.m.drawmapscale(115.0, 10.0, 110.5, 10.2, 1100, barstyle='fancy', units='km', zorder=20)
+                    text_x, text_y = self.m(120, 10)
+                    plt.text(text_x, text_y, 'Jul-24-2012')
+                    self.ax.axis(self.options.axis)  # 去掉ax画出的部分s刻度
+                    for band in range(0, bands, 1):
+                        print band
+                        currentBand = ds.GetRasterBand(band + 1)
+                        current_data = currentBand.ReadAsArray(0, 0, cols, rows)
+                        print "-----", current_data.shape
+                        self.data = current_data
+                        self.drawMaxMinMean(band)
                 else:
                     pass
-            X, Y = np.meshgrid(self.lon, self.lat)
-            x, y = self.m(X, Y)
-            norm = matplotlib.colors.Normalize(vmin=70000., vmax=110000)
-            if (self.options.plotType == "contourf"):
-                cs = self.m.contourf(x, y, self.data, cmap=self.options.cmp, norm=norm,
-                                     alpha=self.options.alpha)
-            elif (self.options.plotType == "pcolormesh"):
-                cs = self.m.pcolormesh(x, y, self.data, cmap=self.options.cmp, norm=norm,
-                                       alpha=self.options.alpha)
-            elif (self.options.plotType == "pcolor"):
-                cs = self.m.pcolor(x, y, self.data, cmap=self.options.cmp, alpha=self.options.alpha)
-            if (self.options.colorbarPosition != None):
-                cax2 = self.fig.add_axes(self.options.colorbarPosition)
-                cbar = plt.colorbar(cs, cax=cax2, orientation='vertical')
-            self.ax.axis(self.options.axis)  # 去掉ax画出的部分的刻度
-            self.fig.savefig(self.options.outputFile, format='png', transparent=False, dpi=self.options.dpi,
-                             pad_inches=0)
 
+    def drawMaxMinMean(self, band):
+        norm = matplotlib.colors.Normalize(vmin=float(self.normalize[0]), vmax=float(self.normalize[1]))
+        if (self.options.plotType == "contourf"):
+            cs = self.m.contourf(self.x, self.y, self.data, cmap=self.options.cmp, norm=norm,
+                                 alpha=self.options.alpha)
+        elif (self.options.plotType == "pcolormesh"):
+            cs = self.m.pcolormesh(self.x, self.y, self.data, cmap=self.options.cmp,
+                                   alpha=self.options.alpha)
+        elif (self.options.plotType == "pcolor"):
+            cs = self.m.pcolor(self.x, self.y, self.data, cmap=self.options.cmp, alpha=self.options.alpha)
+        if (self.options.colorbarPosition != None):
+            cax2 = self.fig.add_axes(self.options.colorbarPosition)  # 这块会影响绘制效率
+            plt.colorbar(cs, cax=cax2, orientation='vertical')
+
+        self.fig.savefig(self.options.outputFiles[band], format='png', transparent=False, dpi=self.options.dpi,
+                         pad_inches=0)
+        print self.options.outputFiles[band]
         plt.close()
 
     def stop(self):
