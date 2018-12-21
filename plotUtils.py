@@ -22,6 +22,7 @@ from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
 sourcePath = "%s/source" % os.getcwd()
 print sourcePath
+import xlrd
 
 
 class PlotUtils():
@@ -257,9 +258,11 @@ class PlotUtils():
             self.lon0 = float(lon0)
             self.lon1 = float(lon1)
         # ---------------------------------------------
+        if (self.options.areaId != None):
+            self.options.areaId = self.options.areaId.split(",")
+        # ----------------------------------------------
         if (self.options.mapRange == None):
-            print "self.options.mapRange", self.options.mapRange
-            self.options.mapRange = (self.lat0, self.lat1, self.lon0, self.lon1)
+            self.options.mapRange = self.readAreaInfo()
         else:
             (map_lat0, map_lat1, map_lon0, map_lon1) = self.options.mapRange.split(",")
             self.options.mapRange = [float(map_lat0), float(map_lat1), float(map_lon0), float(map_lon1)]
@@ -270,11 +273,35 @@ class PlotUtils():
             (left, bottom, weight) = self.options.axisRange.split(",")
             self.options.axisRange = [float(left), float(bottom), float(weight)]
         # ---------------------------------------------
-        if (self.options.colorbarPosition == None):
+        if (self.options.colorbarPosition == "None"):
             pass
         else:
             (x0, y0, w, h) = self.options.colorbarPosition.split(",")
             self.options.colorbarPosition = [float(x0), float(y0), float(w), float(h)]
+
+    # 读取固定列表获取区域的信息
+    def readAreaInfo(self):
+        areaInfoXlsPath = "%s/um_area_info.xlsx" % sourcePath
+        areaInfoWorkbook = xlrd.open_workbook(areaInfoXlsPath)
+        areaInfosheet = areaInfoWorkbook.sheet_by_index(0)
+        areaInfoRows = areaInfosheet.nrows
+        areaInforCols = areaInfosheet.ncols
+        allLeftRightTopBottom = []
+        for areaInfoRowIndex in xrange(areaInfoRows):
+            areaInfo = areaInfosheet.row_values(areaInfoRowIndex)
+            for areaid in self.options.areaId:
+                if (areaid == areaInfo[2]):
+                    print areaInfo[2]
+                    print areaInfo[7], areaInfo[8]
+                    lefttop = areaInfo[7].split(",")
+                    rightbottom = areaInfo[8].split(",")
+                    allLeftRightTopBottom.append(
+                        [float(rightbottom[1]), float(lefttop[1]), float(lefttop[0]), float(rightbottom[0])])
+        allLeftRightTopBottom = np.array(allLeftRightTopBottom)
+        return (np.min(allLeftRightTopBottom[:, 0]),
+                np.max(allLeftRightTopBottom[:, 1]),
+                np.min(allLeftRightTopBottom[:, 2]),
+                np.max(allLeftRightTopBottom[:, 3]))
 
     def clipData(self):
         try:
@@ -366,47 +393,58 @@ class PlotUtils():
         self.ax = ax
         self.m = m
 
-    def drawBaseData(self):
-        if (self.options.shapeFile != None):
-            if (os.path.exists(self.options.shapeFile + ".shp")):
-                self.m.readshapefile(self.options.shapeFile, 'states')
-            else:
-                print "%s is not exist" % self.options.shapeFile
-                self.stop()
-        else:
-            print "no shapefile"
-        if (not self.stopped):
-            self.data = self.sourceData[0]
-            X, Y = np.meshgrid(self.lon, self.lat)
-            x, y = self.m(X, Y)
-            if (self.options.plotType == "contourf"):
-                cs = self.m.contourf(x, y, self.data, cmap=self.options.cmp, alpha=self.options.alpha)
-            elif (self.options.plotType == "pcolormesh"):
-                cs = self.m.pcolormesh(x, y, self.data, cmap=self.options.cmp, alpha=self.options.alpha)
-            elif (self.options.plotType == "pcolor"):
-                cs = self.m.pcolor(x, y, self.data, cmap=self.options.cmp, alpha=self.options.alpha)
-            if (self.options.colorbarPosition != None):
-                cax2 = self.fig.add_axes(self.options.colorbarPosition)
-                cbar = plt.colorbar(cs, cax=cax2, orientation='vertical')
-            # plt.axis(self.options.axis)  #整个画布去掉刻度去掉刻度
-            self.ax.axis(self.options.axis)  # 去掉ax画出的部分的刻度
-            # plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)  # 去掉边框
-            # plt.margins(0, 0)
-            if (self.options.isClipData == "True" and self.options.shapeFile != None):  # 是否裁剪数据
-                if (self.options.areaId != None):
-                    self.options.areaId = self.options.areaId.split(",")
-                    maskout.shp2clip2(cs, self.ax, self.m, self.options.shapeFile, self.options.areaId)
-
-            self.fig.savefig(self.options.outputFiles, format='png', transparent=False, dpi=self.options.dpi,
-                             pad_inches=0)
-            plt.close()
+    # 之前用maskout借助shapefile 做裁剪方式
+    # def drawBaseData(self):
+    #     if (self.options.shapeFile != None):
+    #         if (os.path.exists(self.options.shapeFile + ".shp")):
+    #             self.m.readshapefile(self.options.shapeFile, 'states')
+    #         else:
+    #             print "%s is not exist" % self.options.shapeFile
+    #             self.stop()
+    #     else:
+    #         print "no shapefile"
+    #     if (not self.stopped):
+    #         self.data = self.sourceData[0]
+    #         X, Y = np.meshgrid(self.lon, self.lat)
+    #         x, y = self.m(X, Y)
+    #         if (self.options.plotType == "contourf"):
+    #             cs = self.m.contourf(x, y, self.data, cmap=self.options.cmp, alpha=self.options.alpha)
+    #         elif (self.options.plotType == "pcolormesh"):
+    #             cs = self.m.pcolormesh(x, y, self.data, cmap=self.options.cmp, alpha=self.options.alpha)
+    #         elif (self.options.plotType == "pcolor"):
+    #             cs = self.m.pcolor(x, y, self.data, cmap=self.options.cmp, alpha=self.options.alpha)
+    #         if (self.options.colorbarPosition != "None"):
+    #             cax2 = self.fig.add_axes(self.options.colorbarPosition)
+    #             cbar = plt.colorbar(cs, cax=cax2, orientation='vertical')
+    #         # plt.axis(self.options.axis)  #整个画布去掉刻度去掉刻度
+    #         self.ax.axis(self.options.axis)  # 去掉ax画出的部分的刻度
+    #         # plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)  # 去掉边框
+    #         # plt.margins(0, 0)
+    #         if (self.options.isClipData == "True" and self.options.shapeFile != None):  # 是否裁剪数据
+    #             if (self.options.areaId != None):
+    #                 self.options.areaId = self.options.areaId.split(",")
+    #                 maskout.shp2clip2(cs, self.ax, self.m, self.options.shapeFile, self.options.areaId)
+    #
+    #         self.fig.savefig(self.options.outputFiles, format='png', transparent=False, dpi=self.options.dpi,
+    #                          pad_inches=0)
+    #         plt.close()
 
     def drawgdalClipData(self):
         if (self.options.shapeFile != None):
             if (self.options.areaId != "None"):
+                # cutlineWhere="qxdm LIKE '%s%s%s' " % ("%",self.options.areaId, "%")
+                # cutlineWhere = "qxdm LIKE '%s%s' or qxdm LIKE '%s%s' " % ("1502", "%", "1507", "%")
+                cutlineWhere = ""
+                for areaid_index, areaid in enumerate(self.options.areaId):
+                    cutlineWhere = cutlineWhere + "qxdm LIKE '%s%s' " % (areaid, "%")
+                    if (areaid_index + 1 == self.options.areaId.__len__()):
+                        pass
+                    else:
+                        cutlineWhere = cutlineWhere + "or "
+                print cutlineWhere
                 ds = gdal.Warp("", self.inputfile, format='MEM', cutlineDSName=self.options.shapeFile,
                                cutlineSQL='SELECT * FROM qixian',
-                               cutlineWhere="qxdm LIKE '%s%s' " % (self.options.areaId, "%"),
+                               cutlineWhere=cutlineWhere,
                                dstNodata=np.nan)
                 if (ds != None):
                     cols = ds.RasterXSize  # 获取文件的列数
@@ -419,22 +457,29 @@ class PlotUtils():
                     self.lat = current_lat
                     X, Y = np.meshgrid(self.lon, self.lat)
                     self.x, self.y = self.m(X, Y)
-                    x, y = self.fig.transFigure.transform((0.9, 0.9))
-                    zhinbenzhenPath = "%s/zhibeizhen.png" % sourcePath
-                    self.fig.figimage(plt.imread(zhinbenzhenPath), xo=x, yo=y, zorder=1000)
-                    scale = self.m.drawmapscale(115.0, 10.0, 110.5, 10.2, 1100, barstyle='fancy', units='km', zorder=20)
-                    text_x, text_y = self.m(120, 10)
-                    plt.text(text_x, text_y, 'Jul-24-2012')
-                    self.ax.axis(self.options.axis)  # 去掉ax画出的部分s刻度
+                    self.addOrDeleteLittleTools()
                     for band in range(0, bands, 1):
                         print band
                         currentBand = ds.GetRasterBand(band + 1)
                         current_data = currentBand.ReadAsArray(0, 0, cols, rows)
-                        print "-----", current_data.shape
                         self.data = current_data
                         self.drawMaxMinMean(band)
                 else:
-                    pass
+                    print "gdal clip error"
+
+    # 增加或者减少一些小工具
+    def addOrDeleteLittleTools(self):
+        x, y = self.fig.transFigure.transform((0.9, 0.9))
+        # 添加指北针
+        zhinbenzhenPath = "%s/zhibeizhen.png" % sourcePath
+        self.fig.figimage(plt.imread(zhinbenzhenPath), xo=x, yo=y, zorder=1000)
+        # 添加比例尺
+        scale = self.m.drawmapscale(115.0, 10.0, 110.5, 10.2, 1100, barstyle='fancy', units='km', zorder=20)
+        # 添加文字说明
+        text_x, text_y = self.m(120, 10)
+        plt.text(text_x, text_y, 'Jul-24-2012')
+        # 是否去掉axis的边框
+        self.ax.axis(self.options.axis)  # 去掉ax画出的部分s刻度
 
     def drawMaxMinMean(self, band):
         norm = matplotlib.colors.Normalize(vmin=float(self.normalize[0]), vmax=float(self.normalize[1]))
@@ -446,7 +491,7 @@ class PlotUtils():
                                    alpha=self.options.alpha)
         elif (self.options.plotType == "pcolor"):
             cs = self.m.pcolor(self.x, self.y, self.data, cmap=self.options.cmp, alpha=self.options.alpha)
-        if (self.options.colorbarPosition != None):
+        if (self.options.colorbarPosition != "None"):
             cax2 = self.fig.add_axes(self.options.colorbarPosition)  # 这块会影响绘制效率
             plt.colorbar(cs, cax=cax2, orientation='vertical')
 
