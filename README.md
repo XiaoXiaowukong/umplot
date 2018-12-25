@@ -11,7 +11,7 @@
 ## 参数说明(标*为必须传入)
 * ***input_file** 输入文件（支持tif和img）
 * ***output_files** 输出文件 多个可以用","隔开
-* ***shape_file** gdal矢量裁剪依据的模板shape文件
+* shape_file gdal矢量裁剪依据的模板shape文件
 * area_id 需要裁剪的区域id多个可以用","隔开 例"1507,1502,1509,1506,1529,150424" 默认全部数据
   (注意! shape_file 输入 area_id可以不输入，area_id 输入shape_file必须输入）
 * view_shape 覆盖一层shape文件
@@ -57,7 +57,7 @@
 ## 外部调用参数说明(标*为必须传入)
 * ***--input_file** 输入文件（支持tif和img）
 * ***--output_files** 输出文件 多个可以用","隔开
-* ***--shape_file** gdal矢量裁剪依据的模板shape文件
+* --shape_file gdal矢量裁剪依据的模板shape文件
 * --area_id 需要裁剪的区域id多个可以用","隔开 例"1507,1502,1509,1506,1529,150424" 默认全部数据
   (注意! shape_file 输入 area_id可以不输入，area_id 输入shape_file必须输入）
 * --view_shape 覆盖一层shape文件
