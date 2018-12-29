@@ -7,13 +7,12 @@ def plot():
     myPlotUtils.initParams(
         input_file="/Volumes/pioneer/gdal_Demo/cldas_nrt_day/2018/12_tif/Z_NAFP_C_BABJ_20181203230448_P_CLDAS_NRT_ASI_0P0625_DAY-TMP-2018120100.tif",
         output_files="./export_min.png,./export_max.png,./export_mean.png",
-        shape_file="/Users/lhtd_01/Downloads/oschina/um_fy3_znoal/fy3/shp/qixian.shp",
-        area_id="1507,1502,1509,1506,1529,150424",
+        # area_id="150424,999999,14",
         view_shape="/Volumes/pioneer/pipDemo/umplot/umplots/source/qixian_WGS84",
         # axis="on",
         # is_clip="False",
         # pic_weight="1000",
-        # plot_type="contourf",
+        plot_type="contourf",
         # plot_type="pcolormesh",
         # plot_type="pcolor",
         # alpha="1.0",
@@ -23,7 +22,7 @@ def plot():
         # colorbar_position="0.9,0.01,0.01,0.25",
         # plot_range="30,40,80,90",
         # map_range="0,60,70,140",
-        # axis_range="0.05,0.05,0.9",
+        axis_range="0.05,0.05,0.9",
         # normalize="0,400",
     )
 

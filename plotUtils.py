@@ -12,6 +12,7 @@ from umOpener.openUtils import OpenUtils
 
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import xlrd
+import os
 
 axis_list = ("on", "off")
 is_clip_list = ("True", "False")
@@ -19,8 +20,10 @@ plot_list = ("contourf", "pcolormesh", "pcolor")
 
 myTitlefont = matplotlib.font_manager.FontProperties(
     fname="/Users/lhtd_01/Downloads/gn_pyserver_py/um_pyserver_fy/statics/msyh.ttf", style="oblique")
-
-sourcePath = "%s/source" % os.getcwd()
+sourceDIRPath = "%s/source" % os.path.dirname(os.path.abspath(__file__))
+defaultShapeFile = "%s/hebing.shp" % sourceDIRPath
+defaultAreaInfoXls = "%s/area_all_info.xls" % sourceDIRPath
+zhinbenzhenPath = "%s/zhibeizhen.png" % sourceDIRPath
 
 
 class PlotUtils():
@@ -174,16 +177,16 @@ class PlotUtils():
             plotRange=None,
             mapRange=None,
             axisRange=None,
-            shapeFile=None,
+            shapeFile=defaultShapeFile,
             viewShapeFile=None,
-            areaId=None,
+            areaId="15",  # 默认全内蒙
             colorbarPosition=None,
             cmp="jet",
             axis="off",
             dpi=80,  # 标准分辨率
             picWeight=1080,
             alpha=1.0,
-            normalize=None
+            normalize=None,
         )
         self.parser = p
 
@@ -286,22 +289,25 @@ class PlotUtils():
 
     # 读取固定列表获取区域的信息
     def readAreaInfo(self):
-        areaInfoXlsPath = "%s/um_area_info.xlsx" % sourcePath
-        areaInfoWorkbook = xlrd.open_workbook(areaInfoXlsPath)
+        areaInfoWorkbook = xlrd.open_workbook(defaultAreaInfoXls)
         areaInfosheet = areaInfoWorkbook.sheet_by_index(0)
         areaInfoRows = areaInfosheet.nrows
+        self.defaultAreaInfoList = {}
+        for areaInfoRowIndex in xrange(areaInfoRows):
+            if (areaInfoRowIndex > 0):
+                self.defaultAreaInfoList[areaInfosheet.row_values(areaInfoRowIndex)[0]] = areaInfosheet.row_values(
+                    areaInfoRowIndex)
         allLeftRightTopBottom = []
         if (self.options.areaId != None):
-            for areaInfoRowIndex in xrange(areaInfoRows):
-                areaInfo = areaInfosheet.row_values(areaInfoRowIndex)
-                for areaid in self.options.areaId:
-                    if (areaid == areaInfo[2]):
-                        print areaInfo[2]
-                        print areaInfo[7], areaInfo[8]
-                        lefttop = areaInfo[7].split(",")
-                        rightbottom = areaInfo[8].split(",")
-                        allLeftRightTopBottom.append(
-                            [float(rightbottom[1]), float(lefttop[1]), float(lefttop[0]), float(rightbottom[0])])
+            for areaid in self.options.areaId:
+                if (areaid in self.defaultAreaInfoList.keys()):
+                    areaInfo = self.defaultAreaInfoList[areaid]
+                    lefttop = areaInfo[7].split(",")
+                    rightbottom = areaInfo[8].split(",")
+                    allLeftRightTopBottom.append(
+                        [float(rightbottom[1]), float(lefttop[1]), float(lefttop[0]), float(rightbottom[0])])
+                else:
+                    print "%s areid not found" % areaid
             allLeftRightTopBottom = np.array(allLeftRightTopBottom)
             return (np.min(allLeftRightTopBottom[:, 0]),
                     np.max(allLeftRightTopBottom[:, 1]),
@@ -355,14 +361,15 @@ class PlotUtils():
                 # cutlineWhere = "qxdm LIKE '%s%s' or qxdm LIKE '%s%s' " % ("1502", "%", "1507", "%")
                 cutlineWhere = ""
                 for areaid_index, areaid in enumerate(self.options.areaId):
-                    cutlineWhere = cutlineWhere + "qxdm LIKE '%s%s' " % (areaid, "%")
+                    cutlineWhere = cutlineWhere + "ADCODE99 LIKE '%s%s' " % (areaid, "%")
                     if (areaid_index + 1 == self.options.areaId.__len__()):
                         pass
                     else:
                         cutlineWhere = cutlineWhere + "or "
+                print cutlineWhere
                 ds = gdal.Warp("", self.options.inputfile, format='MEM',
                                cutlineDSName=self.options.shapeFile,
-                               cutlineSQL='SELECT * FROM qixian',
+                               cutlineSQL='SELECT * FROM hebing',
                                cutlineWhere=cutlineWhere,
                                dstNodata=np.nan)
                 if (ds != None):
@@ -381,7 +388,7 @@ class PlotUtils():
                         self.data = current_data
                         self.drawMaxMinMean(band)
                 else:
-                    print "gdal clip error"
+                    print "----->gdal clip error"
             else:
                 print "will plot all data"
                 self.openFile()
@@ -412,7 +419,7 @@ class PlotUtils():
     def addOrDeleteLittleTools(self):
         x, y = self.fig.transFigure.transform((0.9, 0.9))
         # 添加指北针
-        zhinbenzhenPath = "%s/zhibeizhen.png" % sourcePath
+
         self.fig.figimage(plt.imread(zhinbenzhenPath), xo=x, yo=y, zorder=1000)
         # 添加比例尺
         scale = self.m.drawmapscale(115.0, 10.0, 110.5, 10.2, 1100, barstyle='fancy', units='km', zorder=20)
