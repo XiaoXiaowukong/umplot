@@ -13,7 +13,6 @@
 * ***output_files** 输出文件 多个可以用","隔开
 * shape_file gdal矢量裁剪依据的模板shape文件， 用默认即可！！！
 * area_id 需要裁剪的区域id多个可以用","隔开 例"150424,999999,14", 默认"15" 全内蒙数据
-  (注意! shape_file 输入 area_id可以不输入，area_id 输入shape_file必须输入）
 * view_shape 覆盖一层shape文件
 * axis 刻度开关（off,on）默认off
 * pic_weight 生成图片宽度 默认1080
@@ -59,7 +58,6 @@
 * ***--output_files** 输出文件 多个可以用","隔开
 * --shape_file gdal矢量裁剪依据的模板shape文件 ，用默认即可！！！
 * --area_id 需要裁剪的区域id多个可以用","隔开 例"150424,999999,14", 默认"15" 全内蒙数据
-  (注意! shape_file 输入 area_id可以不输入，area_id 输入shape_file必须输入）
 * --view_shape 覆盖一层shape文件
 * --axis 刻度开关（off,on）默认off
 * --pic_weight 生成图片宽度 默认1080
