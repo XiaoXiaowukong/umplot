@@ -18,12 +18,12 @@ axis_list = ("on", "off")
 is_clip_list = ("True", "False")
 plot_list = ("contourf", "pcolormesh", "pcolor")
 
-myTitlefont = matplotlib.font_manager.FontProperties(
-    fname="/Users/lhtd_01/Downloads/gn_pyserver_py/um_pyserver_fy/statics/msyh.ttf", style="oblique")
 sourceDIRPath = "%s/source" % os.path.dirname(os.path.abspath(__file__))
 defaultShapeFile = "%s/hebing.shp" % sourceDIRPath
 defaultAreaInfoXls = "%s/area_all_info.xls" % sourceDIRPath
 zhinbenzhenPath = "%s/zhibeizhen.png" % sourceDIRPath
+msyhPath = "%s/msyh.ttf" % sourceDIRPath
+myTitlefont = matplotlib.font_manager.FontProperties(fname=msyhPath, style="oblique")
 
 
 class PlotUtils():
