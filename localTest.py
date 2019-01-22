@@ -33,7 +33,47 @@ def plot():
     myPlotUtils.process()
 
 
+# 指标只有一个
+def jingtaitu():
+    inputFile = "/Volumes/pioneer/gdal_Demo_内蒙三维数据/cmcast/cldas_nrt/2018/12/20181201_tif/mean.tif"
+    myPlotUtils = PlotUtils()
+    myPlotUtils.initParams(
+        input_file=inputFile,
+        output_files="./jingtaitu.png",
+        area_id="61,15",
+        view_shape="/Volumes/pioneer/pipDemo/umplot/umplots/source/qixian_WGS84",
+        plot_type="pcolormesh",
+        cmap='#ffffe5,#90ee90',
+        colorbar_position="0.9,0.01,0.01,0.25",
+        axis_range="0.05,0.05,0.9",
+        levels="90"
+    )
+    myPlotUtils.process()
+
+
+# 多个指标
+def countPlot():
+    inputFile = "/Volumes/pioneer/gdal_Demo_内蒙三维数据/cmcast/cldas_nrt/2018/12/20181201_tif/count.tif"
+    myPlotUtils = PlotUtils()
+    myPlotUtils.initParams(
+        input_file=inputFile,
+        output_files="./count.png",
+        area_id="1422",
+        view_shape="/Volumes/pioneer/pipDemo/umplot/umplots/source/qixian_WGS84",
+        plot_type="pcolormesh",
+        cmap='#ff0000,#00ff00,#0000ff,#00f8f9',
+        colorbar_position="0.1,0.01,0.01,0.25",
+        axis_range="0.05,0.05,0.9",
+        levels="1,2,3",
+        company_name="卡的撒娇的撒的教科书是的撒大所多"
+
+    )
+    myPlotUtils.process()
+
+
 if __name__ == '__main__':
     startTime = time.time()
-    plot()
+    # plot()
+    # jingtaitu()
+    countPlot()
     print "time: %s" % str(time.time() - startTime)

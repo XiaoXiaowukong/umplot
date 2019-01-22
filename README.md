@@ -22,12 +22,12 @@
 * dpi 输出图片dpi (默认80)
 * colorbar_position 色卡图例位置"a,b,c,d"(a:左起点，在画布X轴方向比例值（0-1）b:下起点，在画布Y轴方向比例值（0-1) 
     c:色卡宽度，在画布X轴方向比例值（0-1）d:色卡的高度，在画布Y轴方向比例值（0-1))
-* plot_range 输入数据区域"lat0,lat1,lon0,lon1"，根据区域进行绘制前裁剪，默认输入数据（lat,lon）最大区域
 * map_range 底图绘制区域"lat0,lat1,lon0,lon1" 默认和输入数据区域相同
 * axis_range 画笔axis 位置 "a,b,c"（a:左起点，在画布X轴方向比例值（0-1),b:下起点，在画布Y轴方向比例值（0-1),c:宽度，在画布X轴方向比例值（0-1））默认"0.0,0.0,1.0"
 * normalize 绘制数据阈值 默认None
+* levels 等级划分 例如"0,1"
 
-## 示例
+## 使用示例
 ```
     myPlotUtils = PlotUtils()
     myPlotUtils.initParams(
@@ -46,7 +46,6 @@
         # cmp='#ffffe5,#90ee90,#008ae5',
         # dpi="80",
         # colorbar_position="0.9,0.01,0.01,0.25",
-        # plot_range="30,40,80,90",
         # map_range="0,60,70,140",
         # axis_range="0.05,0.05,0.9",
         # normalize="0,400",
@@ -67,12 +66,12 @@
 * --dpi 输出图片dpi (默认80)
 * --colorbar_position 色卡图例位置"a,b,c,d"(a:左起点，在画布X轴方向比例值（0-1）b:下起点，在画布Y轴方向比例值（0-1) 
     c:色卡宽度，在画布X轴方向比例值（0-1）d:色卡的高度，在画布Y轴方向比例值（0-1))
-* --plot_range 输入数据区域"lat0,lat1,lon0,lon1"，根据区域进行绘制前裁剪，默认输入数据（lat,lon）最大区域
 * --map_range 底图绘制区域"lat0,lat1,lon0,lon1" 默认和输入数据区域相同
 * --axis_range 画笔axis 位置 "a,b,c"（a:左起点，在画布X轴方向比例值（0-1),b:下起点，在画布Y轴方向比例值（0-1),c:宽度，在画布X轴方向比例值（0-1））默认"0.0,0.0,1.0"
 * --normalize 绘制数据阈值 默认None
+* --levels 等级划分 例如"0,1"
 
-## 示例
+## 使用示例
 ```
 python plotUtils.py --input_file /Volumes/pioneer/gdal_Demo/cldas_nrt_day/2018/12_tif/Z_NAFP_C_BABJ_20181203230448_P_CLDAS_NRT_ASI_0P0625_DAY-TMP-2018120100.tif \
                     --output_files ./export_min.png,./export_max.png,./export_mean.png

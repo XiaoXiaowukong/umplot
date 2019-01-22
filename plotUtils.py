@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import *
 import numpy as np
 import matplotlib
-
 import time
 from osgeo import gdal, osr
 from umOpener.geotiffreader import createXY
@@ -14,13 +13,17 @@ from umOpener.openUtils import OpenUtils
 import xlrd
 import os
 from plotBaseUtils import PlotBaseUtils
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+import math
 
 sourceDIRPath = "%s/source" % os.path.dirname(os.path.abspath(__file__))
 defaultShapeFile = "%s/hebing.shp" % sourceDIRPath
 defaultAreaInfoXls = "%s/area_all_info.xls" % sourceDIRPath
 zhinbenzhenPath = "%s/zhibeizhen.png" % sourceDIRPath
+companyLogo = "%s/logo_50.png" % sourceDIRPath
 msyhPath = "%s/msyh.ttf" % sourceDIRPath
 myTitlefont = matplotlib.font_manager.FontProperties(fname=msyhPath, style="oblique")
+myTitlefont.set_size(15)
 
 
 class PlotUtils(PlotBaseUtils):
@@ -86,10 +89,10 @@ class PlotUtils(PlotBaseUtils):
         # m.drawcoastlines()  # 画海岸线
         # m.drawcountries()  # 画国界线
         # m.drawmapboundary()  # 画中国内部区域，即省界线
-        parallels = np.arange(-90., 90, 10.)  # 创建纬线数组
+        parallels = np.arange(-90., 90, 1.)  # 创建纬线数组
         m.drawparallels(parallels, labels=[1, 0, 0, 0], fontsize=10, linewidth=0.1)  # 绘制纬线
-
-        meridians = np.arange(0., 360., 10.)  # 创建经线数组
+        #
+        meridians = np.arange(0., 360., 1.)  # 创建经线数组
         m.drawmeridians(meridians, labels=[0, 0, 0, 1], fontsize=10, linewidth=0.1)  # 绘制经线
         m.drawcoastlines(linewidth=0.5)
         m.drawstates(linewidth=0.25)
@@ -107,74 +110,74 @@ class PlotUtils(PlotBaseUtils):
 
     def drawgdalClipData(self):
         print self.options.inputfiles
-        bandIndex = 0;
-        for inputFileIndex, inputfile in enumerate(self.options.inputfiles):
-            self.options.inputfile = inputfile
-            if (os.path.exists(self.options.inputfile)):
-                if (self.options.shapeFile != None and self.options.areaId != None):
-                    cutlineWhere = ""
-                    for areaid_index, areaid in enumerate(self.options.areaId):
-                        cutlineWhere = cutlineWhere + "ADCODE99 LIKE '%s%s' " % (areaid, "%")
-                        if (areaid_index + 1 == self.options.areaId.__len__()):
-                            pass
-                        else:
-                            cutlineWhere = cutlineWhere + "or "
-                    print cutlineWhere
-                    dstSRS = osr.SpatialReference()
-                    dstSRS.ImportFromEPSG(4326)
-                    ds = gdal.Warp("", self.options.inputfile, format='MEM',
-                                   cutlineDSName=self.options.shapeFile,
-                                   cutlineSQL='SELECT * FROM hebing',
-                                   cutlineWhere=cutlineWhere,
-                                   dstNodata=np.nan,
-                                   dstSRS=dstSRS,
-                                   resampleAlg=gdal.GRIORA_NearestNeighbour)
-                    if (ds != None):
-                        cols = ds.RasterXSize  # 获取文件的列数
-                        rows = ds.RasterYSize  # 获取文件的行数
-                        bands = ds.RasterCount
-                        current_geotransf = ds.GetGeoTransform()  # 获取放射矩阵
-                        (current_lat, current_lon) = createXY(current_geotransf, cols, rows)
-                        self.lon = current_lon
-                        self.lat = current_lat
+        if (self.options.inputfiles == None):
+            return;
+        else:
+            bandIndex = 0;
+            for inputFileIndex, inputfile in enumerate(self.options.inputfiles):
+                self.options.inputfile = inputfile
+                if (os.path.exists(self.options.inputfile)):
+                    if (self.options.isClip == "True"):
+                        if (self.options.shapeFile != None and self.options.areaId != None):
+                            cutlineWhere = ""
+                            for areaid_index, areaid in enumerate(self.options.areaId):
+                                cutlineWhere = cutlineWhere + "ADCODE99 LIKE '%s%s' " % (areaid, "%")
+                                if (areaid_index + 1 == self.options.areaId.__len__()):
+                                    pass
+                                else:
+                                    cutlineWhere = cutlineWhere + "or "
+                            print cutlineWhere
+                            dstSRS = osr.SpatialReference()
+                            dstSRS.ImportFromEPSG(4326)
+                            ds = gdal.Warp("", self.options.inputfile, format='MEM',
+                                           cutlineDSName=self.options.shapeFile,
+                                           cutlineSQL='SELECT * FROM hebing',
+                                           cutlineWhere=cutlineWhere,
+                                           dstNodata=np.nan,
+                                           dstSRS=dstSRS,
+                                           resampleAlg=gdal.GRIORA_NearestNeighbour)
+                            if (ds != None):
+                                cols = ds.RasterXSize  # 获取文件的列数
+                                rows = ds.RasterYSize  # 获取文件的行数
+                                bands = ds.RasterCount
+                                current_geotransf = ds.GetGeoTransform()  # 获取放射矩阵
+                                (current_lat, current_lon) = createXY(current_geotransf, cols, rows)
+                                self.lon = current_lon
+                                self.lat = current_lat
+                                X, Y = np.meshgrid(self.lon, self.lat)
+                                self.x, self.y = self.m(X, Y)
+                                for band in range(0, bands, 1):
+                                    currentBand = ds.GetRasterBand(band + 1)
+                                    current_data = currentBand.ReadAsArray(0, 0, cols, rows)
+                                    print np.nanmax(current_data)
+                                    print np.nanmin(current_data)
+
+                                    self.data = current_data
+                                    self.drawMaxMinMean(bandIndex)
+                                    bandIndex = bandIndex + 1
+                            else:
+                                print "----->gdal clip error"
+                    else:
+                        print "will plot all data"
+                        # 绘制原始数据
+                        self.openFile()
                         X, Y = np.meshgrid(self.lon, self.lat)
                         self.x, self.y = self.m(X, Y)
-                        for band in range(0, bands, 1):
-                            currentBand = ds.GetRasterBand(band + 1)
-                            current_data = currentBand.ReadAsArray(0, 0, cols, rows)
-                            print np.nanmax(current_data)
-                            print np.nanmin(current_data)
-                            self.data = current_data
+                        bands = self.sourceData.shape[0]
+                        for band in range(bands):
+                            self.data = self.sourceData[band]
+                            self.data[self.data == self.noData[band]] = np.nan
                             self.drawMaxMinMean(bandIndex)
                             bandIndex = bandIndex + 1
-
-                    else:
-                        print "----->gdal clip error"
                 else:
-                    print "will plot all data"
-                    # 绘制原始数据
-                    self.openFile()
-                    X, Y = np.meshgrid(self.lon, self.lat)
-                    self.x, self.y = self.m(X, Y)
-                    bands = self.sourceData.shape[0]
-                    for band in range(bands):
-                        self.data = self.sourceData[band]
-                        self.data[self.data == self.noData[band]] = np.nan
-                        self.drawMaxMinMean(bandIndex)
-                        bandIndex = bandIndex + 1
-            else:
-                print "%s is not exist" % self.options.inputfile
+                    print "%s is not exist" % self.options.inputfile
 
     # 读取原始文件数据
     def openFile(self):
         myOpenUtils = OpenUtils()
         myOpenUtils.initParams(
             self.options.inputfile,
-            file_type="GeoTiff",
-            export_type="GeoTiff",
-            data_type='float32',
-            is_rewirte_data=False,
-            proj="mercator")
+            file_type="GeoTiff")
         self.lat = myOpenUtils.lats
         self.lon = myOpenUtils.lons
         self.sourceData = myOpenUtils.data
@@ -186,22 +189,85 @@ class PlotUtils(PlotBaseUtils):
         x, y = self.fig.transFigure.transform((0.9, 0.9))
         # 添加指北针
         self.fig.figimage(plt.imread(zhinbenzhenPath), xo=x, yo=y, zorder=1000)
-        # 添加比例尺
-        scale = self.m.drawmapscale(115.0, 10.0, 110.5, 10.2, 1100, barstyle='fancy', units='km', zorder=20)
         # 添加文字说明
-        text_x, text_y = self.m(120, 10)
-        plt.text(text_x, text_y, 'Jul-24-2012')
+        im = plt.imread(companyLogo)
+        (picx, picy, picz) = im.shape
+        x1, y0 = self.ax.transAxes.transform((1.0, 0.0))
+        x0, y1 = self.ax.transAxes.transform((0.0, 1.0))
+        print "x1", x1
+        print "y0", y0
+        print "x0", x0
+        print "y1", y1
+
+        vCenter = picx / 2 / y1
+        companyName = self.ax.text(1.0, vCenter, unicode(self.options.companyName, "utf-8"),
+                                   horizontalalignment="right", verticalalignment="center", transform=self.ax.transAxes,
+                                   fontproperties=myTitlefont)
+        wordWeight = len(unicode(self.options.companyName, "utf-8")) * companyName.get_fontsize()
+        # 添加制作单位logo
+        imf = self.fig.figimage(im, xo=x1 - wordWeight - 50 * 2, yo=y0, zorder=1000)
+        # 添加比例尺
+        print self.options.mapRange
+        # 先算出图片左边的经纬度
+        leftpicW = x1 - wordWeight - 50 * 2
+        print leftpicW
+        print (self.options.mapRange[3] - self.options.mapRange[2]) / (x1 - x0)
+        print  (leftpicW - x0)
+        print ((self.options.mapRange[3] - self.options.mapRange[2]) / (x1 - x0)) * (leftpicW - x0)
+        # log左边的经度
+        pic_left = ((self.options.mapRange[3] - self.options.mapRange[2]) / (x1 - x0)) * (leftpicW - x0) + \
+                   self.options.mapRange[2]
+        print pic_left
+        lessWeigth = 111 * math.cos(int(self.options.mapRange[0]))
+        print "lessWeigth", lessWeigth
+        # 剩余经度
+        leftEmpty = pic_left - self.options.mapRange[2]
+        print "leftEmpty", leftEmpty
+        if (leftEmpty > 5):
+            scale_weight = 1 * lessWeigth
+            scale_center = pic_left - 1
+            my_units = "km"
+        elif (leftEmpty < 5 and leftEmpty > 1):
+            print "dayu 1 xiaoyu 5"
+            scale_weight = 0.5 * lessWeigth
+            scale_center = pic_left - 0.5
+            my_units = "km"
+        else:
+            print "xiaoyu 1"
+            # 剩余多少米
+            left_empty_mile = leftEmpty * lessWeigth * 1000
+            print "left_empty_mile", left_empty_mile
+            scale_weight = left_empty_mile / 2
+            scale_center = pic_left - scale_weight / 1000 / lessWeigth / 2
+            my_units = "m"
+        self.m.drawmapscale(scale_center, self.options.mapRange[0], scale_center,
+                                    self.options.mapRange[0] + 0.2, scale_weight, barstyle='fancy', units=my_units,
+                                    zorder=20)
+
         # 是否去掉axis的边框
-        self.ax.axis(self.options.axis)  # 去掉ax画出的部分s刻度
+        self.ax.axis(self.options.axis)  # 去掉ax画出的部分刻度
 
     def drawMaxMinMean(self, band):
         print "band name ", band
+
         if (self.options.levels != None):
             self.remakeLevels()
             extend = 'both'
+            mycolor = []
+            for levelsIndex in range(self.levels.__len__() + 1):
+                mycolor.append(self.options.cmap[levelsIndex])
+            if (self.levels.__len__() == 1):
+                mycolor.insert(0, "#ffffff")
+                self.levels.insert(0, np.nanmin(self.data))
             cs = self.m.contourf(self.x, self.y, self.data, norm=self.options.normalize, levels=self.levels,
-                                 alpha=self.options.alpha, extend=extend, colors=self.colors)
+                                 alpha=self.options.alpha, extend=extend, colors=mycolor)
         else:
+
+            # if (self.options.levels != None):
+            #     self.options.cmap = ListedColormap(self.colors)
+            # else:
+            # 渐变色
+            self.options.cmap = LinearSegmentedColormap.from_list('custom_colcor', self.colors, N=256)
             if (self.options.plotType == "contourf"):
                 cs = self.m.contourf(self.x, self.y, self.data, cmap=self.options.cmap, norm=self.options.normalize,
                                      alpha=self.options.alpha)
@@ -211,9 +277,10 @@ class PlotUtils(PlotBaseUtils):
             elif (self.options.plotType == "pcolor"):
                 cs = self.m.pcolor(self.x, self.y, self.data, cmap=self.options.cmap, norm=self.options.normalize,
                                    alpha=self.options.alpha)
-        if (self.options.colorbarPosition != None):
-            cax2 = self.fig.add_axes(self.options.colorbarPosition)  # 这块会影响绘制效率
-            plt.colorbar(cs, cax=cax2, orientation='vertical')
+        self.addOrDeleteLittleTools()
+        # if (self.options.colorbarPosition != None):
+        #     cax2 = self.fig.add_axes(self.options.colorbarPosition)  # 这块会影响绘制效率
+        #     plt.colorbar(cs, cax=cax2, orientation='vertical')
         print self.options.outputFiles[band]
         self.fig.savefig(self.options.outputFiles[band], format='png', transparent=False, dpi=self.options.dpi,
                          pad_inches=0)

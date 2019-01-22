@@ -3,7 +3,6 @@ __version__ = '$Id: plotBaseUtils.py 27349 2018-111-27 18:58:51Z rouault $'
 
 import os
 import matplotlib
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
 sourceDIRPath = "%s/source" % os.path.dirname(os.path.abspath(__file__))
 defaultShapeFile = "%s/hebing.shp" % sourceDIRPath
@@ -40,13 +39,6 @@ class PlotBaseUtils():
         from optparse import OptionParser, OptionGroup
         usage = 'Usage: %prog [options] input_file(s) [output]'
         p = OptionParser(usage, version='%prog ' + __version__)
-        # 绘制的区域（此处是数据进行裁剪的参数）
-        p.add_option(
-            '-r',
-            '--plot_range',
-            dest='plotRange',
-            help='lat and lon range',
-        )
         # 底图的区域
         p.add_option(
             '-m',
@@ -119,10 +111,10 @@ class PlotBaseUtils():
         )
         p.add_option(
             '--is_clip',
-            dest="isClipData",
+            dest="isClip",
             type="choice",
             choices=is_clip_list,
-            help='is clip source data',
+            help='is clip source tif',
         )
         p.add_option(
             '--plot_type',
@@ -158,6 +150,12 @@ class PlotBaseUtils():
             dest="levels",
             help="set data plot level"
         )
+        p.add_option(
+            '--company_name',
+            dest='companyName',
+            help='company name str'
+
+        )
         p.set_defaults(
             plotType="pcolormesh",
             nodata=None,
@@ -169,12 +167,14 @@ class PlotBaseUtils():
             areaId=None,  # 默认全内蒙
             colorbarPosition=None,
             cmap="jet",
-            axis="off",
+            axis="on",
             dpi=80,  # 标准分辨率
             picWeight=1080,
             alpha=1.0,
             normalize=None,
-            levels=None
+            levels=None,
+            isClip="True",
+            companyName="制作单位：内蒙古生态与农业气象中心"
         )
         self.parser = p
 
@@ -185,17 +185,6 @@ class PlotBaseUtils():
         # 输入文件分割
         if (self.options.inputfiles != None):
             self.options.inputfiles = self.options.inputfiles.split(",")
-        else:
-            self.stop()
-        # 数据切割
-        if (self.options.plotRange == None):
-            pass
-        else:
-            (lat0, lat1, lon0, lon1) = self.options.plotRange.split(",")
-            self.lat0 = float(lat0)
-            self.lat1 = float(lat1)
-            self.lon0 = float(lon0)
-            self.lon1 = float(lon1)
         # 选择区域
         if (self.options.areaId != None):
             self.options.areaId = self.options.areaId.split(",")
@@ -233,17 +222,9 @@ class PlotBaseUtils():
             self.options.alpha = float(self.options.alpha)
         except Exception, e:
             self.options.alpha = 1.0
+        self.options.cmap = self.options.cmap.split(",")
+        print self.options.cmap
 
-        self.colors = self.options.cmap.split(",")
-        print self.colors
-        if (self.colors.__len__() == 1):
-            pass
-        elif (self.colors.__len__() > 1):
-            if (self.options.levels != None):
-                self.options.cmap = ListedColormap(self.colors)
-            else:
-                # 渐变色
-                self.options.cmap = LinearSegmentedColormap.from_list('custom_colcor', self.colors, N=256)
         # 设置绘制数据的数值范围
         if (self.options.normalize != None):
             self.options.normalize = self.options.normalize.split(",")
