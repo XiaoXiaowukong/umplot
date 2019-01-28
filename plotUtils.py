@@ -23,7 +23,9 @@ zhinbenzhenPath = "%s/zhibeizhen.png" % sourceDIRPath
 companyLogo = "%s/logo_50.png" % sourceDIRPath
 msyhPath = "%s/msyh.ttf" % sourceDIRPath
 myTitlefont = matplotlib.font_manager.FontProperties(fname=msyhPath, style="oblique")
-myTitlefont.set_size(15)
+
+
+# myTitlefont.set_size(15)
 
 
 class PlotUtils(PlotBaseUtils):
@@ -89,11 +91,10 @@ class PlotUtils(PlotBaseUtils):
         # m.drawcoastlines()  # 画海岸线
         # m.drawcountries()  # 画国界线
         # m.drawmapboundary()  # 画中国内部区域，即省界线
-        parallels = np.arange(-90., 90, 1.)  # 创建纬线数组
-        m.drawparallels(parallels, labels=[1, 0, 0, 0], fontsize=10, linewidth=0.1)  # 绘制纬线
-        #
-        meridians = np.arange(0., 360., 1.)  # 创建经线数组
-        m.drawmeridians(meridians, labels=[0, 0, 0, 1], fontsize=10, linewidth=0.1)  # 绘制经线
+        # parallels = np.arange(-90., 90, 1.)  # 创建纬线数组
+        # m.drawparallels(parallels, labels=[1, 0, 0, 0], fontsize=10, linewidth=0.1)  # 绘制纬线
+        # meridians = np.arange(0., 360., 1.)  # 创建经线数组
+        # m.drawmeridians(meridians, labels=[0, 0, 0, 1], fontsize=10, linewidth=0.1)  # 绘制经线
         m.drawcoastlines(linewidth=0.5)
         m.drawstates(linewidth=0.25)
         self.fig = fig
@@ -149,9 +150,6 @@ class PlotUtils(PlotBaseUtils):
                                 for band in range(0, bands, 1):
                                     currentBand = ds.GetRasterBand(band + 1)
                                     current_data = currentBand.ReadAsArray(0, 0, cols, rows)
-                                    print np.nanmax(current_data)
-                                    print np.nanmin(current_data)
-
                                     self.data = current_data
                                     self.drawMaxMinMean(bandIndex)
                                     bandIndex = bandIndex + 1
@@ -194,11 +192,6 @@ class PlotUtils(PlotBaseUtils):
         (picx, picy, picz) = im.shape
         x1, y0 = self.ax.transAxes.transform((1.0, 0.0))
         x0, y1 = self.ax.transAxes.transform((0.0, 1.0))
-        print "x1", x1
-        print "y0", y0
-        print "x0", x0
-        print "y1", y1
-
         vCenter = picx / 2 / y1
         companyName = self.ax.text(1.0, vCenter, unicode(self.options.companyName, "utf-8"),
                                    horizontalalignment="right", verticalalignment="center", transform=self.ax.transAxes,
@@ -207,49 +200,50 @@ class PlotUtils(PlotBaseUtils):
         # 添加制作单位logo
         imf = self.fig.figimage(im, xo=x1 - wordWeight - 50 * 2, yo=y0, zorder=1000)
         # 添加比例尺
-        print self.options.mapRange
         # 先算出图片左边的经纬度
         leftpicW = x1 - wordWeight - 50 * 2
-        print leftpicW
-        print (self.options.mapRange[3] - self.options.mapRange[2]) / (x1 - x0)
-        print  (leftpicW - x0)
-        print ((self.options.mapRange[3] - self.options.mapRange[2]) / (x1 - x0)) * (leftpicW - x0)
         # log左边的经度
         pic_left = ((self.options.mapRange[3] - self.options.mapRange[2]) / (x1 - x0)) * (leftpicW - x0) + \
                    self.options.mapRange[2]
-        print pic_left
-        lessWeigth = 111 * math.cos(int(self.options.mapRange[0]))
-        print "lessWeigth", lessWeigth
+        lessWeigth = 111 * abs(math.cos(int(self.options.mapRange[0])))
         # 剩余经度
         leftEmpty = pic_left - self.options.mapRange[2]
-        print "leftEmpty", leftEmpty
-        if (leftEmpty > 5):
+        if (leftEmpty >= 20):
+            scale_weight = 3 * lessWeigth
+            scale_center = pic_left - 3
+            my_units = "km"
+        elif (leftEmpty >= 10 and leftEmpty < 20):
+            scale_weight = 2 * lessWeigth
+            scale_center = pic_left - 2
+            my_units = "km"
+        elif (leftEmpty > 5 and leftEmpty < 10):
             scale_weight = 1 * lessWeigth
             scale_center = pic_left - 1
             my_units = "km"
         elif (leftEmpty < 5 and leftEmpty > 1):
-            print "dayu 1 xiaoyu 5"
             scale_weight = 0.5 * lessWeigth
+            print "scale_weight", scale_weight
             scale_center = pic_left - 0.5
             my_units = "km"
         else:
-            print "xiaoyu 1"
             # 剩余多少米
             left_empty_mile = leftEmpty * lessWeigth * 1000
-            print "left_empty_mile", left_empty_mile
             scale_weight = left_empty_mile / 2
             scale_center = pic_left - scale_weight / 1000 / lessWeigth / 2
             my_units = "m"
-        self.m.drawmapscale(scale_center, self.options.mapRange[0], scale_center,
-                                    self.options.mapRange[0] + 0.2, scale_weight, barstyle='fancy', units=my_units,
-                                    zorder=20)
+        scale_weight = int(scale_weight / 5) * 5
+        # scale_weight = 500
+        scale_add = 35 / (y1 - y0) * (self.options.mapRange[1] - self.options.mapRange[0])
+        self.m.drawmapscale(scale_center, self.options.mapRange[0] + scale_add, pic_left,
+                            self.options.mapRange[0] + scale_add, scale_weight, units=my_units,
+                            barstyle='fancy', ax=self.ax,
+                            zorder=20, fontsize=9, linewidth=0.1)
 
         # 是否去掉axis的边框
         self.ax.axis(self.options.axis)  # 去掉ax画出的部分刻度
 
     def drawMaxMinMean(self, band):
         print "band name ", band
-
         if (self.options.levels != None):
             self.remakeLevels()
             extend = 'both'
@@ -267,15 +261,15 @@ class PlotUtils(PlotBaseUtils):
             #     self.options.cmap = ListedColormap(self.colors)
             # else:
             # 渐变色
-            self.options.cmap = LinearSegmentedColormap.from_list('custom_colcor', self.colors, N=256)
+            self.colors = LinearSegmentedColormap.from_list('custom_colcor', self.options.cmap, N=256)
             if (self.options.plotType == "contourf"):
-                cs = self.m.contourf(self.x, self.y, self.data, cmap=self.options.cmap, norm=self.options.normalize,
+                cs = self.m.contourf(self.x, self.y, self.data, cmap=self.colors, norm=self.options.normalize,
                                      alpha=self.options.alpha)
             elif (self.options.plotType == "pcolormesh"):
-                cs = self.m.pcolormesh(self.x, self.y, self.data, cmap=self.options.cmap, norm=self.options.normalize,
+                cs = self.m.pcolormesh(self.x, self.y, self.data, cmap=self.colors, norm=self.options.normalize,
                                        alpha=self.options.alpha)
             elif (self.options.plotType == "pcolor"):
-                cs = self.m.pcolor(self.x, self.y, self.data, cmap=self.options.cmap, norm=self.options.normalize,
+                cs = self.m.pcolor(self.x, self.y, self.data, cmap=self.colors, norm=self.options.normalize,
                                    alpha=self.options.alpha)
         self.addOrDeleteLittleTools()
         # if (self.options.colorbarPosition != None):
