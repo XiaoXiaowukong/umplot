@@ -95,8 +95,9 @@ class PlotUtils(PlotBaseUtils):
         # m.drawparallels(parallels, labels=[1, 0, 0, 0], fontsize=10, linewidth=0.1)  # 绘制纬线
         # meridians = np.arange(0., 360., 1.)  # 创建经线数组
         # m.drawmeridians(meridians, labels=[0, 0, 0, 1], fontsize=10, linewidth=0.1)  # 绘制经线
-        m.drawcoastlines(linewidth=0.5)
-        m.drawstates(linewidth=0.25)
+        if (self.options.isTransparent == "False"):
+            m.drawcoastlines(linewidth=0.5)
+            m.drawstates(linewidth=0.25)
         self.fig = fig
         self.ax = ax
         self.m = m
@@ -239,11 +240,10 @@ class PlotUtils(PlotBaseUtils):
                             barstyle='fancy', ax=self.ax,
                             zorder=20, fontsize=9, linewidth=0.1)
 
-        # 是否去掉axis的边框
-        self.ax.axis(self.options.axis)  # 去掉ax画出的部分刻度
 
     def drawMaxMinMean(self, band):
         print "band name ", band
+        print self.options.mapRange
         if (self.options.levels != None):
             self.remakeLevels()
             extend = 'both'
@@ -271,12 +271,19 @@ class PlotUtils(PlotBaseUtils):
             elif (self.options.plotType == "pcolor"):
                 cs = self.m.pcolor(self.x, self.y, self.data, cmap=self.colors, norm=self.options.normalize,
                                    alpha=self.options.alpha)
-        self.addOrDeleteLittleTools()
+        if (self.options.isAddViews == "True"):
+            self.addOrDeleteLittleTools()
         # if (self.options.colorbarPosition != None):
         #     cax2 = self.fig.add_axes(self.options.colorbarPosition)  # 这块会影响绘制效率
         #     plt.colorbar(cs, cax=cax2, orientation='vertical')
         print self.options.outputFiles[band]
-        self.fig.savefig(self.options.outputFiles[band], format='png', transparent=False, dpi=self.options.dpi,
+        if (self.options.isTransparent == "False"):
+            transparent = False
+        else:
+            transparent = True
+        # 是否去掉axis的边框
+        self.ax.axis(self.options.axis)  # 去掉ax画出的部分刻度
+        self.fig.savefig(self.options.outputFiles[band], format='png', transparent=transparent, dpi=self.options.dpi,
                          pad_inches=0)
         plt.close()
 

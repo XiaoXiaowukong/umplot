@@ -8,6 +8,8 @@ sourceDIRPath = "%s/source" % os.path.dirname(os.path.abspath(__file__))
 defaultShapeFile = "%s/hebing.shp" % sourceDIRPath
 axis_list = ("on", "off")
 is_clip_list = ("True", "False")
+is_transparent_list = ("True", "False")
+is_add_views_list = ("True", "False")
 plot_list = ("contourf", "pcolormesh", "pcolor")
 
 
@@ -39,6 +41,19 @@ class PlotBaseUtils():
         from optparse import OptionParser, OptionGroup
         usage = 'Usage: %prog [options] input_file(s) [output]'
         p = OptionParser(usage, version='%prog ' + __version__)
+        # 输入文件
+        p.add_option(
+            '--input_files',
+            dest='inputfiles',
+            help='input files '
+        )
+        # 输出文件
+        p.add_option(
+            '-o',
+            '--output_files',
+            dest='outputFiles',
+            help='export png/jepg etc. file',
+        )
         # 底图的区域
         p.add_option(
             '-m',
@@ -46,25 +61,14 @@ class PlotBaseUtils():
             dest='mapRange',
             help='map lat and lon range',
         )
-        p.add_option(
-            '--input_files',
-            dest='inputfiles',
-            help='input files '
-        )
-        p.add_option(
-            '-o',
-            '--output_files',
-            dest='outputFiles',
-            help='export png/jepg etc. file',
-        )
+        # 绘制色卡
         p.add_option(
             '-c',
             '--cmap',
             dest='cmap',
             help='plot data with color',
         )
-
-        # 刻度的开关 off/on
+        # 刻度/边框的开关 off/on
         p.add_option(
             '-a',
             '--axis',
@@ -79,36 +83,41 @@ class PlotBaseUtils():
             dest="axisRange",
             help='Axis plot range'
         )
+        # 分辨率
         p.add_option(
             '-d',
             '--dpi',
             dest="dpi",
             help='plot dpi'
         )
+        # 裁剪的根据文件（shape）
         p.add_option(
             '-s',
             '--shape_file',
             dest="shapeFile",
             help='input shapefile'
         )
+        # 要覆盖的shape文件
         p.add_option(
             '-v',
             '--view_shape',
             dest="viewShapeFile",
             help='over basemap shapefile'
         )
-
+        # 裁剪的区域ID
         p.add_option(
             '--area_id',
             dest="areaId",
             help='input areaId'
         )
+        # 图片的宽度
         p.add_option(
             '-w',
             '--pic_weight',
             dest="picWeight",
             help='export pic weight size'
         )
+        # 是否要根据areaid裁剪绘制
         p.add_option(
             '--is_clip',
             dest="isClip",
@@ -116,6 +125,7 @@ class PlotBaseUtils():
             choices=is_clip_list,
             help='is clip source tif',
         )
+        # 绘制方式
         p.add_option(
             '--plot_type',
             dest="plotType",
@@ -133,28 +143,48 @@ class PlotBaseUtils():
             dest="colorbarPosition",
             help="set colorbar position"
         )
+        # 绘制的透明度
         p.add_option(
             '--alpha',
             dest="alpha",
             help="set axis alpha"
         )
+        # 绘制最大最小范围
         p.add_option(
             '--n',
             '--normalize',
             dest="normalize",
             help="value smin,max"
         )
+        # 等值线绘制的等级
         p.add_option(
             '-l',
             '--levels',
             dest="levels",
             help="set data plot level"
         )
+        # 制作单位
         p.add_option(
             '--company_name',
             dest='companyName',
             help='company name str'
 
+        )
+        # 是否要背景透明
+        p.add_option(
+            '--is_transparent',
+            dest="isTransparent",
+            type="choice",
+            choices=is_transparent_list,
+            help="base map transparent"
+        )
+        # 是否添加比例尺，指北针，制作单位名称及logo
+        p.add_option(
+            '--is_add_views',
+            dest="isAddViews",
+            type="choice",
+            choices=is_add_views_list,
+            help="add scale companyname logo .."
         )
         p.set_defaults(
             plotType="pcolormesh",
@@ -174,6 +204,8 @@ class PlotBaseUtils():
             normalize=None,
             levels=None,
             isClip="True",
+            isTransparent="False",
+            isAddViews="True",
             companyName="制作单位：内蒙古生态与农业气象中心"
         )
         self.parser = p

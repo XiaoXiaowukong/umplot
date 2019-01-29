@@ -27,6 +27,8 @@
 * normalize 绘制数据阈值 默认None
 * levels 等级划分 例如"0,1"
 * company_name 制作单位名称
+* is_transparent 是否basemap底图透明（true/False）默认 False
+* is_add_views 是否添加比例尺，指北针，制作单位及logo小控件。默认True
 
 ## 使用示例
 ```
@@ -72,6 +74,8 @@
 * --normalize 绘制数据阈值 默认None
 * --levels 等级划分 例如"0,1"
 * --company_name 制作单位名称
+* --is_transparent 是否basemap底图透明（true/False）默认 False
+* --is_add_views 是否添加比例尺，指北针，制作单位及logo小控件。默认True
 
 ## 使用示例
 ```
