@@ -106,7 +106,10 @@ class PlotUtils(PlotBaseUtils):
     # ===============================加载图层=============================================================
     def addShapeFile(self):
         if (self.options.viewShapeFile != None):
-            self.m.readshapefile(self.options.viewShapeFile, 'states', drawbounds=True)
+            if (os.path.exists("%s.shp" % self.options.viewShapeFile)):
+                self.m.readshapefile(self.options.viewShapeFile, 'states', drawbounds=True)
+            else:
+                print "%s is not exist" % ("%s.shp" % self.options.viewShapeFile)
         else:
             print "no over view shapefile "
 
@@ -239,7 +242,6 @@ class PlotUtils(PlotBaseUtils):
                             self.options.mapRange[0] + scale_add, scale_weight, units=my_units,
                             barstyle='fancy', ax=self.ax,
                             zorder=20, fontsize=9, linewidth=0.1)
-
 
     def drawMaxMinMean(self, band):
         print "band name ", band

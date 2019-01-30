@@ -34,10 +34,8 @@ class ReadShapeFile():
                 else:
                     self.areaDic[xian_code[:2]] = ["", "", "", self.areaDic[xian_code][3],
                                                    self.areaDic[xian_code][4], self.areaDic[xian_code][5]]
-                # print self.areaDic[xian_code]
                 self.areaDic[xian_code].append(lefttop)
                 self.areaDic[xian_code].append(rightbottom)
-                # print self.areaDic[xian_code]
             else:
                 if (xian_code != "0"):
                     print "xian_code is not exist", xian_code
@@ -61,7 +59,7 @@ class ReadShapeFile():
         else:
             print "%s is not exist" % statxls
 
-    def wirteAreaInfoXls(self):
+    def wirteAreaInfoXls(self, exportFile):
         f = xlwt.Workbook('utf-8', 'writeBook')  # 创建工作簿
         sheetBase = f.add_sheet(u'sheet1', cell_overwrite_ok=True)  # 创建sheet
         rowHead = [u'bianma_xian', u'县名称', u'bianma_shi', u'市名称', u'bianma_sheng', u'省名称', u'国家', u'lefttop',
@@ -83,9 +81,8 @@ class ReadShapeFile():
                         palllons.append(float(self.areaDic[pAreaKey][7].split(",")[0]))
                         palllats.append(float(self.areaDic[pAreaKey][6].split(",")[1]))
                         palllats.append(float(self.areaDic[pAreaKey][7].split(",")[1]))
-                        print self.areaDic[pAreaKey][6], self.areaDic[pAreaKey][7]
-                print palllats
-                print palllons
+                # print palllats
+                # print palllons
                 if (palllats.__len__() != 0 and palllons.__len__() != 0):
                     pLeftTop = str(float(np.min(palllons))) + "," + str(float(np.max(palllats)))
                     pRightBottom = str(float(np.max(palllons))) + "," + str(float(np.min(palllats)))
@@ -98,24 +95,21 @@ class ReadShapeFile():
                 for sAreaIdex, sAreaKey in enumerate(allkeys):
                     if (sAreaKey.__len__() == 6 and sAreaKey[:4] == areaKey):
                         print "=====", sAreaKey
-                        salllons.append(float(self.areaDic[pAreaKey][6].split(",")[0]))
-                        salllons.append(float(self.areaDic[pAreaKey][7].split(",")[0]))
-                        salllats.append(float(self.areaDic[pAreaKey][6].split(",")[1]))
-                        salllats.append(float(self.areaDic[pAreaKey][7].split(",")[1]))
-                        print self.areaDic[pAreaKey][6], self.areaDic[pAreaKey][7]
-                print salllats
-                print salllons
+                        salllons.append(float(self.areaDic[sAreaKey][6].split(",")[0]))
+                        salllons.append(float(self.areaDic[sAreaKey][7].split(",")[0]))
+                        salllats.append(float(self.areaDic[sAreaKey][6].split(",")[1]))
+                        salllats.append(float(self.areaDic[sAreaKey][7].split(",")[1]))
+                # print "salllats",salllats
+                # print "salllons",salllons
                 if (salllats.__len__() != 0 and salllons.__len__() != 0):
                     sLeftTop = str(float(np.min(salllons))) + "," + str(float(np.max(salllats)))
                     sRightBottom = str(float(np.max(salllons))) + "," + str(float(np.min(salllats)))
                     self.areaDic[areaKey].append(sLeftTop)
                     self.areaDic[areaKey].append(sRightBottom)
-
             sheetBase.write(areaDicinfoIndex + 1, 0, areaKey)
             for areaDicinfosIndex, areaDicinfo in enumerate(self.areaDic[areaKey]):
                 sheetBase.write(areaDicinfoIndex + 1, areaDicinfosIndex + 1, areaDicinfo)
-
-        f.save("./source/area_all_info.xls")  # 保存文件
+        f.save(exportFile)  # 保存文件
         del f
 
 
@@ -129,4 +123,8 @@ if __name__ == '__main__':
         myReadShapeFile.readShapeFile(shpfile)
     else:
         print "%s is not exist" % shpfile
-    myReadShapeFile.wirteAreaInfoXls()
+    print myReadShapeFile.areaDic["11"]
+    print myReadShapeFile.areaDic["1101"]
+    print myReadShapeFile.areaDic["110100"]
+    exportFile = "./source/area_all_info.xls"
+    myReadShapeFile.wirteAreaInfoXls(exportFile)
